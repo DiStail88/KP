@@ -903,23 +903,26 @@ function addPost({ imageUrl, description, token }) {
     });
 }
 function toggleLike(postId, isLiked) {
-    const endpoint = isLiked ? `/api/v1/prod/instapro/posts/${postId}/dislike` // для снятия лайка
-     : `/api/v1/prod/instapro/posts/${postId}/like`; // для добавления лайка
+    // Путь к ресурсам лайков и дизлайков
+    const endpoint = isLiked ? `/api/v1/prod/instapro/posts/${postId}/dislike` // для дизлайка
+     : `/api/v1/prod/instapro/posts/${postId}/like`; // для лайка
     const url = baseHost + endpoint;
     console.log("\u041E\u0442\u043F\u0440\u0430\u0432\u043A\u0430 \u0437\u0430\u043F\u0440\u043E\u0441\u0430 \u043F\u043E URL:", url);
+    // Используем PATCH для отправки запроса
     return fetch(url, {
-        method: "POST",
+        method: "PATCH",
         headers: {
-            "Authorization": `Bearer ${(0, _indexJs.getToken)()}`
+            "Authorization": `Bearer ${(0, _indexJs.getToken)()}`,
+            "Content-Type": "application/json" // Указываем тип контента
         }
     }).then((response)=>{
         if (!response.ok) throw new Error(`\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43F}\u{440}\u{438} \u{437}\u{430}\u{43F}\u{440}\u{43E}\u{441}\u{435}: ${response.status} ${response.statusText}`);
-        return response.json();
+        return response.json(); // Парсим ответ сервера
     }).then((updatedPost)=>{
-        return updatedPost;
+        return updatedPost; // Возвращаем обновленные данные
     }).catch((error)=>{
         console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0438 \u043B\u0430\u0439\u043A\u0430:", error);
-        throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043B\u0430\u0439\u043A");
+        throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043B\u0430\u0439\u043A"); // Ошибка при обновлении
     });
 }
 

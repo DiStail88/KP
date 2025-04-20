@@ -125,29 +125,33 @@ export function addPost({ imageUrl, description, token }) {
 }
 
 export function toggleLike(postId, isLiked) {
+  // Путь к ресурсам лайков и дизлайков
   const endpoint = isLiked
-    ? `/api/v1/prod/instapro/posts/${postId}/dislike`   // для снятия лайка
-    : `/api/v1/prod/instapro/posts/${postId}/like`;      // для добавления лайка
+    ? `/api/v1/prod/instapro/posts/${postId}/dislike`   // для дизлайка
+    : `/api/v1/prod/instapro/posts/${postId}/like`;      // для лайка
   const url = baseHost + endpoint;
   console.log("Отправка запроса по URL:", url);
 
+  // Используем PATCH для отправки запроса
   return fetch(url, {
-    method: "POST",
+    method: "PATCH",  // Меняем на PATCH
     headers: {
-      "Authorization": `Bearer ${getToken()}`,
+      "Authorization": `Bearer ${getToken()}`,  // Авторизация
+      "Content-Type": "application/json"        // Указываем тип контента
     },
   })
   .then((response) => {
     if (!response.ok) {
       throw new Error(`Ошибка при запросе: ${response.status} ${response.statusText}`);
     }
-    return response.json();
+    return response.json(); // Парсим ответ сервера
   })
   .then((updatedPost) => {
-    return updatedPost;
+    return updatedPost;  // Возвращаем обновленные данные
   })
   .catch((error) => {
     console.error("Ошибка при обновлении лайка:", error);
-    throw new Error("Не удалось обновить лайк");
+    throw new Error("Не удалось обновить лайк");  // Ошибка при обновлении
   });
 }
+
