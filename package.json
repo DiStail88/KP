@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "dev": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.14.4"
+  }
+}
