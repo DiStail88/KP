@@ -101,6 +101,7 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
         })
         .join("");
 
+
       appEl.innerHTML = `
         <div class="page-container">
           <div class="header-container"></div>
@@ -126,21 +127,51 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
       // Обработчик клика по кнопке лайка
       document.querySelectorAll(".like-button").forEach((button) => {
         button.addEventListener("click", (event) => {
-          const postId = event.target.closest("button").dataset.postId;
-          const isLiked = event.target.src.includes("like-active"); // Проверка, стоит ли лайк
+          // Используем closest(), чтобы гарантировать, что мы получаем правильную кнопку
+          const buttonEl = event.target.closest("button");
 
-          // Обновляем состояние лайка и перерисовываем UI
-          toggleLike(postId, isLiked)
+          // Получаем postId из data-атрибута кнопки
+          const postId = buttonEl?.dataset.postId;
+
+          // Логируем для отладки
+          console.log(`Лайк для поста с ID: ${postId}`);
+
+          if (!postId) {
+            console.error("❌ Не найден postId для лайка.");
+            return; // Прерываем выполнение, если postId не найден
+          }
+
+          // Проверка, стоит ли лайк
+          const isLiked = event.target.src.includes("like-active");
+
+          console.log(`👉 Лайк для поста с ID: ${postId}, isLiked: ${isLiked}`);
+
+          // Отправляем запрос на сервер для переключения состояния лайка
+          toggleLike({ postId, isLiked, token: getToken() })
             .then((updatedPost) => {
-              const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
-              const likeButton = postElement.querySelector("button img");
-              const likeCount = postElement.querySelector(".post-likes-text strong");
+              // Логируем ответ от сервера
+              console.log("Ответ от сервера для поста:", updatedPost);
 
-              // Обновляем картинку лайка
-              likeButton.src = updatedPost.isLiked ? "./assets/images/like-active.svg" : "./assets/images/like-not-active.svg";
-              
-              // Обновляем счетчик лайков
-              likeCount.textContent = updatedPost.likes.length;
+              // Найдем элемент поста в DOM
+              const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
+              if (postElement) {
+                // Обновим иконку лайка
+                const likeButton = postElement.querySelector("button img");
+                const likeCount = postElement.querySelector(".post-likes-text strong");
+
+                if (likeButton && likeCount) {
+                  likeButton.src = updatedPost.isLiked
+                    ? "assets/images/like-active.svg"
+                    : "assets/images/like-not-active.svg";
+                  
+                  // Обновляем счетчик лайков
+                  likeCount.textContent = updatedPost.likes.length;
+                } else {
+                  console.error("Ошибка: элементы для обновления не найдены");
+                }
+              } else {
+                console.error("Ошибка: элемент поста не найден");
+              }
             })
             .catch((error) => {
               console.error("Ошибка при обновлении лайка:", error);

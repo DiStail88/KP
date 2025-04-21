@@ -1,13 +1,12 @@
 import { getToken } from './index.js'; 
 
-const personalKey = "prod";
-const baseHost = "https://webdev-hw-api.vercel.app";
+const personalKey = "DIS";
+const baseHost = "https://wedev-api.sky.pro";
 const postsHost = `${baseHost}/api/v1/${personalKey}/instapro`;
 
 export function getPosts({ token, userId }) {
   let url = postsHost;
 
-  // Правильный путь для получения постов пользователя
   if (userId) {
     url += `/user-posts/${userId}`;
   }
@@ -83,7 +82,6 @@ export function uploadImage({ file }) {
 }
 
 export function addPost({ imageUrl, description, token }) {
-  // Проверяем данные по всем требованиям документации
   if (!description || typeof description !== 'string' || description.trim() === '') {
     return Promise.reject(new Error("Описание обязательно"));
   }
@@ -92,7 +90,6 @@ export function addPost({ imageUrl, description, token }) {
     return Promise.reject(new Error("Требуется валидный URL из Yandex Cloud"));
   }
 
-  // Формируем тело запроса с правильным форматом даты
   const postData = {
     description: description.trim(),
     imageUrl: imageUrl.trim()
@@ -100,7 +97,7 @@ export function addPost({ imageUrl, description, token }) {
 
   console.log("Отправляемые данные на сервер:", JSON.stringify(postData));
 
-  return fetch("https://wedev-api.sky.pro/api/v1/prod/instapro", {
+  return fetch(`${baseHost}/api/v1/${personalKey}/instapro`, {
     method: "POST",
     headers: {
       'Authorization': token,
@@ -113,7 +110,7 @@ export function addPost({ imageUrl, description, token }) {
     console.log("Ответ сервера:", responseData);
 
     if (response.status === 201) {
-      return responseData.post || responseData; // Возвращаем созданный пост
+      return responseData.post || responseData; 
     }
 
     if (response.status === 400) {
@@ -124,34 +121,47 @@ export function addPost({ imageUrl, description, token }) {
   });
 }
 
-export function toggleLike(postId, isLiked) {
-  // Путь к ресурсам лайков и дизлайков
-  const endpoint = isLiked
-    ? `/api/v1/prod/instapro/posts/${postId}/dislike`   // для дизлайка
-    : `/api/v1/prod/instapro/posts/${postId}/like`;      // для лайка
-  const url = baseHost + endpoint;
-  console.log("Отправка запроса по URL:", url);
+export function toggleLike({ postId, isLiked, token }) {
+  if (!postId || typeof postId !== 'string') {
+    console.error('Invalid postId:', postId);
+    return Promise.reject(new Error("Неверный ID поста"));
+  }
 
-  // Используем PATCH для отправки запроса
+  if (typeof isLiked !== 'boolean') {
+    return Promise.reject(new Error("Не указано действие (лайк/дизлайк)"));
+  }
+
+  if (!token) {
+    return Promise.reject(new Error("Требуется токен авторизации"));
+  }
+
+  const endpoint = isLiked ? '/dislike' : '/like';
+  const url = `${baseHost}/api/v1/${personalKey}/instapro/${postId}${endpoint}`;
+
+  console.log('[API] toggleLike request to:', url);
+
   return fetch(url, {
-    method: "PATCH",  // Меняем на PATCH
+    method: "POST",
     headers: {
-      "Authorization": `Bearer ${getToken()}`,  // Авторизация
-      "Content-Type": "application/json"        // Указываем тип контента
-    },
-  })
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error(`Ошибка при запросе: ${response.status} ${response.statusText}`);
+      "Authorization": token,
     }
-    return response.json(); // Парсим ответ сервера
   })
-  .then((updatedPost) => {
-    return updatedPost;  // Возвращаем обновленные данные
-  })
-  .catch((error) => {
-    console.error("Ошибка при обновлении лайка:", error);
-    throw new Error("Не удалось обновить лайк");  // Ошибка при обновлении
-  });
-}
+    .then(async (response) => {
+      // Проверка на успешность ответа
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('[API] toggleLike error: Unexpected response:', errorData);
+        throw new Error(`Ошибка сервера: ${response.status}`);
+      }
 
+      // Парсинг ответа как JSON
+      const data = await response.json();
+      console.log('[API] toggleLike response:', data);
+
+      return data.post || data;
+    })
+    .catch((error) => {
+      console.error('[API] toggleLike error:', error.message);
+      throw error;
+    });
+}

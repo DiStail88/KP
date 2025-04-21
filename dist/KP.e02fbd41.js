@@ -687,7 +687,7 @@ var _helpersJs = require("./helpers.js");
 let user = (0, _helpersJs.getUserFromLocalStorage)();
 let page = null;
 let posts = [];
-let pageParams = {}; // ← добавлено
+let pageParams = {};
 const getToken = ()=>{
     return user ? `Bearer ${user.token}` : undefined;
 };
@@ -697,7 +697,7 @@ const logout = ()=>{
     goToPage((0, _routesJs.POSTS_PAGE));
 };
 const goToPage = (newPage, data = {})=>{
-    pageParams = data; // ← сохраняем параметры страницы
+    pageParams = data;
     if ([
         (0, _routesJs.POSTS_PAGE),
         (0, _routesJs.AUTH_PAGE),
@@ -819,12 +819,11 @@ parcelHelpers.export(exports, "uploadImage", ()=>uploadImage);
 parcelHelpers.export(exports, "addPost", ()=>addPost);
 parcelHelpers.export(exports, "toggleLike", ()=>toggleLike);
 var _indexJs = require("./index.js");
-const personalKey = "prod";
-const baseHost = "https://webdev-hw-api.vercel.app";
+const personalKey = "DIS";
+const baseHost = "https://wedev-api.sky.pro";
 const postsHost = `${baseHost}/api/v1/${personalKey}/instapro`;
 function getPosts({ token, userId }) {
     let url = postsHost;
-    // Правильный путь для получения постов пользователя
     if (userId) url += `/user-posts/${userId}`;
     return fetch(url, {
         method: "GET",
@@ -878,16 +877,14 @@ function uploadImage({ file }) {
     });
 }
 function addPost({ imageUrl, description, token }) {
-    // Проверяем данные по всем требованиям документации
     if (!description || typeof description !== 'string' || description.trim() === '') return Promise.reject(new Error("\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E"));
     if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.includes('skypro-webdev-homework-bucket')) return Promise.reject(new Error("\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0432\u0430\u043B\u0438\u0434\u043D\u044B\u0439 URL \u0438\u0437 Yandex Cloud"));
-    // Формируем тело запроса с правильным форматом даты
     const postData = {
         description: description.trim(),
         imageUrl: imageUrl.trim()
     };
     console.log("\u041E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u043C\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440:", JSON.stringify(postData));
-    return fetch("https://wedev-api.sky.pro/api/v1/prod/instapro", {
+    return fetch(`${baseHost}/api/v1/${personalKey}/instapro`, {
         method: "POST",
         headers: {
             'Authorization': token,
@@ -897,32 +894,40 @@ function addPost({ imageUrl, description, token }) {
     }).then(async (response)=>{
         const responseData = await response.json();
         console.log("\u041E\u0442\u0432\u0435\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430:", responseData);
-        if (response.status === 201) return responseData.post || responseData; // Возвращаем созданный пост
+        if (response.status === 201) return responseData.post || responseData;
         if (response.status === 400) throw new Error(responseData.message || "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0434\u0430\u043D\u043D\u044B\u0435: \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 1-500 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432, \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430");
         throw new Error(`\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{441}\u{435}\u{440}\u{432}\u{435}\u{440}\u{430}: ${response.status}`);
     });
 }
-function toggleLike(postId, isLiked) {
-    // Путь к ресурсам лайков и дизлайков
-    const endpoint = isLiked ? `/api/v1/prod/instapro/posts/${postId}/dislike` // для дизлайка
-     : `/api/v1/prod/instapro/posts/${postId}/like`; // для лайка
-    const url = baseHost + endpoint;
-    console.log("\u041E\u0442\u043F\u0440\u0430\u0432\u043A\u0430 \u0437\u0430\u043F\u0440\u043E\u0441\u0430 \u043F\u043E URL:", url);
-    // Используем PATCH для отправки запроса
+function toggleLike({ postId, isLiked, token }) {
+    if (!postId || typeof postId !== 'string') {
+        console.error('Invalid postId:', postId);
+        return Promise.reject(new Error("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 ID \u043F\u043E\u0441\u0442\u0430"));
+    }
+    if (typeof isLiked !== 'boolean') return Promise.reject(new Error("\u041D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 (\u043B\u0430\u0439\u043A/\u0434\u0438\u0437\u043B\u0430\u0439\u043A)"));
+    if (!token) return Promise.reject(new Error("\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0442\u043E\u043A\u0435\u043D \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u0438"));
+    const endpoint = isLiked ? '/dislike' : '/like';
+    const url = `${baseHost}/api/v1/${personalKey}/instapro/${postId}${endpoint}`;
+    console.log('[API] toggleLike request to:', url);
     return fetch(url, {
-        method: "PATCH",
+        method: "POST",
         headers: {
-            "Authorization": `Bearer ${(0, _indexJs.getToken)()}`,
-            "Content-Type": "application/json" // Указываем тип контента
+            "Authorization": token
         }
-    }).then((response)=>{
-        if (!response.ok) throw new Error(`\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43F}\u{440}\u{438} \u{437}\u{430}\u{43F}\u{440}\u{43E}\u{441}\u{435}: ${response.status} ${response.statusText}`);
-        return response.json(); // Парсим ответ сервера
-    }).then((updatedPost)=>{
-        return updatedPost; // Возвращаем обновленные данные
+    }).then(async (response)=>{
+        // Проверка на успешность ответа
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('[API] toggleLike error: Unexpected response:', errorData);
+            throw new Error(`\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{441}\u{435}\u{440}\u{432}\u{435}\u{440}\u{430}: ${response.status}`);
+        }
+        // Парсинг ответа как JSON
+        const data = await response.json();
+        console.log('[API] toggleLike response:', data);
+        return data.post || data;
     }).catch((error)=>{
-        console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0438 \u043B\u0430\u0439\u043A\u0430:", error);
-        throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043B\u0430\u0439\u043A"); // Ошибка при обновлении
+        console.error('[API] toggleLike error:', error.message);
+        throw error;
     });
 }
 
@@ -997,7 +1002,6 @@ function renderAddPostPageComponent({ appEl }) {
                 alert("\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435");
                 return;
             }
-            // Удаляем все спецсимволы из описания
             const cleanDescription = description.replace(/[^\w\sа-яА-ЯёЁ.,!?]/gi, '');
             if (cleanDescription.length < 1) {
                 alert("\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E\u0435 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435");
@@ -1229,19 +1233,17 @@ function renderAuthPageComponent({ appEl, setUser }) {
                     login,
                     password
                 }).then((data)=>{
-                    // Проверьте, что в данных есть токен
                     if (data && data.user && data.user.token) {
                         const token = data.user.token;
-                        console.log("\u041F\u043E\u043B\u0443\u0447\u0435\u043D \u0442\u043E\u043A\u0435\u043D:", token); // Логируем токен, чтобы убедиться, что он есть
-                        localStorage.setItem('userToken', token); // Сохраняем токен в localStorage
-                        setUser(data.user); // Передаем данные пользователя в основной компонент
+                        console.log("\u041F\u043E\u043B\u0443\u0447\u0435\u043D \u0442\u043E\u043A\u0435\u043D:", token);
+                        localStorage.setItem('userToken', token);
+                        setUser(data.user);
                     } else console.error("\u0422\u043E\u043A\u0435\u043D \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D");
                 }).catch((error)=>{
                     console.warn(error);
                     setError(error.message);
                 });
             } else {
-                // Обработка регистрации
                 const login = document.getElementById("login-input").value;
                 const name = document.getElementById("name-input").value;
                 const password = document.getElementById("password-input").value;
@@ -1274,13 +1276,11 @@ function renderAuthPageComponent({ appEl, setUser }) {
                 });
             }
         });
-        // Обработка переключения режима (вход ↔ регистрация)
         document.getElementById("toggle-button").addEventListener("click", ()=>{
             isLoginMode = !isLoginMode;
-            renderForm(); // Перерисовываем форму с новым режимом
+            renderForm();
         });
     };
-    // Инициализация формы
     renderForm();
 }
 
@@ -1292,10 +1292,9 @@ var _headerComponentJs = require("./header-component.js");
 var _indexJs = require("../index.js");
 var _dateFns = require("date-fns");
 var _locale = require("date-fns/locale");
-var _apiJs = require("../api.js"); // Правильное название для API функции
+var _apiJs = require("../api.js");
 function renderPostsPageComponent({ appEl }) {
     console.log("\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u043F\u043E\u0441\u0442\u044B...");
-    // Получаем посты с API
     (0, _apiJs.getPosts)({
         token: (0, _indexJs.getToken)()
     }).then((posts)=>{
@@ -1305,7 +1304,7 @@ function renderPostsPageComponent({ appEl }) {
                 locale: (0, _locale.ru)
             });
             return `
-            <li class="post">
+            <li class="post" data-post-id="${post.id}">
               <div class="post-header" data-user-id="${post.user.id}">
                 <img src="${post.user.imageUrl}" class="post-header__user-image">
                 <p class="post-header__user-name">${post.user.name}</p>
@@ -1343,7 +1342,6 @@ function renderPostsPageComponent({ appEl }) {
         (0, _headerComponentJs.renderHeaderComponent)({
             element: document.querySelector(".header-container")
         });
-        // Обработчик клика по пользователю
         document.querySelectorAll(".post-header").forEach((userEl)=>{
             userEl.addEventListener("click", ()=>{
                 const userId = userEl.dataset.userId;
@@ -1357,20 +1355,31 @@ function renderPostsPageComponent({ appEl }) {
                 });
             });
         });
-        // Обработчик клика по кнопке лайка
+        // Обработчик нажатия на кнопку лайка
         document.querySelectorAll(".like-button").forEach((button)=>{
             button.addEventListener("click", (event)=>{
-                const postId = event.target.closest("button").dataset.postId;
-                const isLiked = event.target.src.includes("like-active"); // Проверка, стоит ли лайк
-                // Обновляем состояние лайка и перерисовываем UI
-                (0, _apiJs.toggleLike)(postId, isLiked).then((updatedPost)=>{
+                const postId = button.dataset.postId;
+                const isLiked = button.querySelector("img").src.includes("like-active");
+                console.log(`\u{1F449} \u{41B}\u{430}\u{439}\u{43A} \u{434}\u{43B}\u{44F} \u{43F}\u{43E}\u{441}\u{442}\u{430} \u{441} ID: ${postId}, isLiked: ${isLiked}`);
+                // Отправляем запрос на сервер для переключения состояния лайка
+                (0, _apiJs.toggleLike)({
+                    postId,
+                    isLiked,
+                    token: (0, _indexJs.getToken)()
+                }).then((updatedPost)=>{
+                    // Логируем ответ от сервера
+                    console.log("\u041E\u0442\u0432\u0435\u0442 \u043E\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0434\u043B\u044F \u043F\u043E\u0441\u0442\u0430:", updatedPost);
+                    // Найдем элемент поста в DOM
                     const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
-                    const likeButton = postElement.querySelector("button img");
-                    const likeCount = postElement.querySelector(".post-likes-text strong");
-                    // Обновляем картинку лайка
-                    likeButton.src = updatedPost.isLiked ? "assets/images/like-active.svg" : "assets/images/like-not-active.svg";
-                    // Обновляем счетчик лайков
-                    likeCount.textContent = updatedPost.likes.length;
+                    if (postElement) {
+                        // Обновим иконку лайка
+                        const likeButton = postElement.querySelector("button img");
+                        const likeCount = postElement.querySelector(".post-likes-text strong");
+                        if (likeButton && likeCount) {
+                            likeButton.src = updatedPost.isLiked ? "assets/images/like-active.svg" : "assets/images/like-not-active.svg";
+                            likeCount.textContent = updatedPost.likes.length;
+                        } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0434\u043B\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B");
+                    } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442 \u043F\u043E\u0441\u0442\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
                 }).catch((error)=>{
                     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0438 \u043B\u0430\u0439\u043A\u0430:", error);
                 });
@@ -4573,17 +4582,39 @@ function renderUserPostsPageComponent({ appEl, userId }) {
         // Обработчик клика по кнопке лайка
         document.querySelectorAll(".like-button").forEach((button)=>{
             button.addEventListener("click", (event)=>{
-                const postId = event.target.closest("button").dataset.postId;
-                const isLiked = event.target.src.includes("like-active"); // Проверка, стоит ли лайк
-                // Обновляем состояние лайка и перерисовываем UI
-                (0, _apiJs.toggleLike)(postId, isLiked).then((updatedPost)=>{
+                // Используем closest(), чтобы гарантировать, что мы получаем правильную кнопку
+                const buttonEl = event.target.closest("button");
+                // Получаем postId из data-атрибута кнопки
+                const postId = buttonEl?.dataset.postId;
+                // Логируем для отладки
+                console.log(`\u{41B}\u{430}\u{439}\u{43A} \u{434}\u{43B}\u{44F} \u{43F}\u{43E}\u{441}\u{442}\u{430} \u{441} ID: ${postId}`);
+                if (!postId) {
+                    console.error("\u274C \u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D postId \u0434\u043B\u044F \u043B\u0430\u0439\u043A\u0430.");
+                    return; // Прерываем выполнение, если postId не найден
+                }
+                // Проверка, стоит ли лайк
+                const isLiked = event.target.src.includes("like-active");
+                console.log(`\u{1F449} \u{41B}\u{430}\u{439}\u{43A} \u{434}\u{43B}\u{44F} \u{43F}\u{43E}\u{441}\u{442}\u{430} \u{441} ID: ${postId}, isLiked: ${isLiked}`);
+                // Отправляем запрос на сервер для переключения состояния лайка
+                (0, _apiJs.toggleLike)({
+                    postId,
+                    isLiked,
+                    token: (0, _indexJs.getToken)()
+                }).then((updatedPost)=>{
+                    // Логируем ответ от сервера
+                    console.log("\u041E\u0442\u0432\u0435\u0442 \u043E\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0434\u043B\u044F \u043F\u043E\u0441\u0442\u0430:", updatedPost);
+                    // Найдем элемент поста в DOM
                     const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
-                    const likeButton = postElement.querySelector("button img");
-                    const likeCount = postElement.querySelector(".post-likes-text strong");
-                    // Обновляем картинку лайка
-                    likeButton.src = updatedPost.isLiked ? "./assets/images/like-active.svg" : "./assets/images/like-not-active.svg";
-                    // Обновляем счетчик лайков
-                    likeCount.textContent = updatedPost.likes.length;
+                    if (postElement) {
+                        // Обновим иконку лайка
+                        const likeButton = postElement.querySelector("button img");
+                        const likeCount = postElement.querySelector(".post-likes-text strong");
+                        if (likeButton && likeCount) {
+                            likeButton.src = updatedPost.isLiked ? "assets/images/like-active.svg" : "assets/images/like-not-active.svg";
+                            // Обновляем счетчик лайков
+                            likeCount.textContent = updatedPost.likes.length;
+                        } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0434\u043B\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B");
+                    } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442 \u043F\u043E\u0441\u0442\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
                 }).catch((error)=>{
                     console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0438 \u043B\u0430\u0439\u043A\u0430:", error);
                 });
