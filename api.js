@@ -95,7 +95,6 @@ export function addPost({ imageUrl, description, token }) {
     imageUrl: imageUrl.trim()
   };
 
-  console.log("Отправляемые данные на сервер:", JSON.stringify(postData));
 
   return fetch(`${baseHost}/api/v1/${personalKey}/instapro`, {
     method: "POST",
@@ -107,7 +106,6 @@ export function addPost({ imageUrl, description, token }) {
   })
   .then(async (response) => {
     const responseData = await response.json();
-    console.log("Ответ сервера:", responseData);
 
     if (response.status === 201) {
       return responseData.post || responseData; 
@@ -138,7 +136,6 @@ export function toggleLike({ postId, isLiked, token }) {
   const endpoint = isLiked ? '/dislike' : '/like';
   const url = `${baseHost}/api/v1/${personalKey}/instapro/${postId}${endpoint}`;
 
-  console.log('[API] toggleLike request to:', url);
 
   return fetch(url, {
     method: "POST",
@@ -147,16 +144,15 @@ export function toggleLike({ postId, isLiked, token }) {
     }
   })
     .then(async (response) => {
-      // Проверка на успешность ответа
+
       if (!response.ok) {
         const errorData = await response.text();
         console.error('[API] toggleLike error: Unexpected response:', errorData);
         throw new Error(`Ошибка сервера: ${response.status}`);
       }
 
-      // Парсинг ответа как JSON
+
       const data = await response.json();
-      console.log('[API] toggleLike response:', data);
 
       return data.post || data;
     })

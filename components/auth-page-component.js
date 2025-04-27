@@ -119,7 +119,6 @@ export function renderAuthPageComponent({ appEl, setUser }) {
 
           if (data && data.user && data.user.token) {
             const token = data.user.token;
-            console.log('Получен токен:', token);  
             localStorage.setItem('userToken', token); 
             setUser(data.user); 
           } else {

@@ -795,7 +795,6 @@ function onAddPostClick({ description, imageUrl }) {
         imageUrl,
         token
     }).then((newPost)=>{
-        console.log("\u041F\u043E\u0441\u0442 \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0441\u043E\u0437\u0434\u0430\u043D:", newPost);
         posts.unshift(newPost);
         goToPage((0, _routesJs.POSTS_PAGE));
     }).catch((error)=>{
@@ -883,7 +882,6 @@ function addPost({ imageUrl, description, token }) {
         description: description.trim(),
         imageUrl: imageUrl.trim()
     };
-    console.log("\u041E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u043C\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440:", JSON.stringify(postData));
     return fetch(`${baseHost}/api/v1/${personalKey}/instapro`, {
         method: "POST",
         headers: {
@@ -893,7 +891,6 @@ function addPost({ imageUrl, description, token }) {
         body: JSON.stringify(postData)
     }).then(async (response)=>{
         const responseData = await response.json();
-        console.log("\u041E\u0442\u0432\u0435\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430:", responseData);
         if (response.status === 201) return responseData.post || responseData;
         if (response.status === 400) throw new Error(responseData.message || "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0434\u0430\u043D\u043D\u044B\u0435: \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 1-500 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432, \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430");
         throw new Error(`\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{441}\u{435}\u{440}\u{432}\u{435}\u{440}\u{430}: ${response.status}`);
@@ -908,22 +905,18 @@ function toggleLike({ postId, isLiked, token }) {
     if (!token) return Promise.reject(new Error("\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0442\u043E\u043A\u0435\u043D \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u0438"));
     const endpoint = isLiked ? '/dislike' : '/like';
     const url = `${baseHost}/api/v1/${personalKey}/instapro/${postId}${endpoint}`;
-    console.log('[API] toggleLike request to:', url);
     return fetch(url, {
         method: "POST",
         headers: {
             "Authorization": token
         }
     }).then(async (response)=>{
-        // Проверка на успешность ответа
         if (!response.ok) {
             const errorData = await response.text();
             console.error('[API] toggleLike error: Unexpected response:', errorData);
             throw new Error(`\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{441}\u{435}\u{440}\u{432}\u{435}\u{440}\u{430}: ${response.status}`);
         }
-        // Парсинг ответа как JSON
         const data = await response.json();
-        console.log('[API] toggleLike response:', data);
         return data.post || data;
     }).catch((error)=>{
         console.error('[API] toggleLike error:', error.message);
@@ -1235,7 +1228,6 @@ function renderAuthPageComponent({ appEl, setUser }) {
                 }).then((data)=>{
                     if (data && data.user && data.user.token) {
                         const token = data.user.token;
-                        console.log("\u041F\u043E\u043B\u0443\u0447\u0435\u043D \u0442\u043E\u043A\u0435\u043D:", token);
                         localStorage.setItem('userToken', token);
                         setUser(data.user);
                     } else console.error("\u0422\u043E\u043A\u0435\u043D \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D");
@@ -1288,13 +1280,13 @@ function renderAuthPageComponent({ appEl, setUser }) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "renderPostsPageComponent", ()=>renderPostsPageComponent);
+parcelHelpers.export(exports, "sanitizeHtml", ()=>sanitizeHtml);
 var _headerComponentJs = require("./header-component.js");
 var _indexJs = require("../index.js");
 var _dateFns = require("date-fns");
 var _locale = require("date-fns/locale");
 var _apiJs = require("../api.js");
 function renderPostsPageComponent({ appEl }) {
-    console.log("\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u043F\u043E\u0441\u0442\u044B...");
     (0, _apiJs.getPosts)({
         token: (0, _indexJs.getToken)()
     }).then((posts)=>{
@@ -1307,22 +1299,22 @@ function renderPostsPageComponent({ appEl }) {
             <li class="post" data-post-id="${post.id}">
               <div class="post-header" data-user-id="${post.user.id}">
                 <img src="${post.user.imageUrl}" class="post-header__user-image">
-                <p class="post-header__user-name">${post.user.name}</p>
+                <p class="post-header__user-name">${sanitizeHtml(post.user.name)}</p>
               </div>
               <div class="post-image-container">
                 <img class="post-image" src="${post.imageUrl}">
               </div>
               <div class="post-likes">
                 <button data-post-id="${post.id}" class="like-button">
-                  <img src="assets/images/${post.isLiked ? 'like-active' : 'like-not-active'}.svg">
+                  <img src="assets/images/${post.isLiked ? 'like-active.svg' : 'like-not-active.svg'}">
                 </button>
-                <p class="post-likes-text">
-                  \u{41D}\u{440}\u{430}\u{432}\u{438}\u{442}\u{441}\u{44F}: <strong>${post.likes.length}</strong>
-                </p>
+                  <p class="post-likes-text">
+                    \u{41D}\u{440}\u{430}\u{432}\u{438}\u{442}\u{441}\u{44F}: <strong>${post.likes.length}</strong>${post.likes.length > 0 ? ` \u{2014} ${post.likes[post.likes.length - 1].name}` : ""}
+                  </p>
               </div>
               <p class="post-text">
-                <span class="user-name">${post.user.name}</span>
-                ${post.description}
+                <span class="user-name">${sanitizeHtml(post.user.name)}</span>
+                ${sanitizeHtml(post.description)}
               </p>
               <p class="post-date">
                 ${createdAgo}
@@ -1349,35 +1341,29 @@ function renderPostsPageComponent({ appEl }) {
                     console.error("\u274C userId \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0443 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430:", userEl);
                     return;
                 }
-                console.log("\uD83D\uDC49 \u041F\u0435\u0440\u0435\u0445\u043E\u0434 \u043A \u043F\u043E\u0441\u0442\u0430\u043C \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F \u0441 ID:", userId);
                 (0, _indexJs.goToPage)("user-posts", {
                     userId
                 });
             });
         });
-        // Обработчик нажатия на кнопку лайка
         document.querySelectorAll(".like-button").forEach((button)=>{
             button.addEventListener("click", (event)=>{
                 const postId = button.dataset.postId;
                 const isLiked = button.querySelector("img").src.includes("like-active");
-                console.log(`\u{1F449} \u{41B}\u{430}\u{439}\u{43A} \u{434}\u{43B}\u{44F} \u{43F}\u{43E}\u{441}\u{442}\u{430} \u{441} ID: ${postId}, isLiked: ${isLiked}`);
-                // Отправляем запрос на сервер для переключения состояния лайка
                 (0, _apiJs.toggleLike)({
                     postId,
                     isLiked,
                     token: (0, _indexJs.getToken)()
                 }).then((updatedPost)=>{
-                    // Логируем ответ от сервера
-                    console.log("\u041E\u0442\u0432\u0435\u0442 \u043E\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0434\u043B\u044F \u043F\u043E\u0441\u0442\u0430:", updatedPost);
-                    // Найдем элемент поста в DOM
                     const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
                     if (postElement) {
-                        // Обновим иконку лайка
                         const likeButton = postElement.querySelector("button img");
                         const likeCount = postElement.querySelector(".post-likes-text strong");
                         if (likeButton && likeCount) {
                             likeButton.src = updatedPost.isLiked ? "assets/images/like-active.svg" : "assets/images/like-not-active.svg";
-                            likeCount.textContent = updatedPost.likes.length;
+                            likeCount.parentElement.innerHTML = `
+                    \u{41D}\u{440}\u{430}\u{432}\u{438}\u{442}\u{441}\u{44F}: <strong>${updatedPost.likes.length}</strong>${updatedPost.likes.length > 0 ? ` \u{2014} ${updatedPost.likes[updatedPost.likes.length - 1].name}` : ""}
+                  `;
                         } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0434\u043B\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B");
                     } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442 \u043F\u043E\u0441\u0442\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
                 }).catch((error)=>{
@@ -1389,6 +1375,11 @@ function renderPostsPageComponent({ appEl }) {
         console.error("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u043F\u043E\u0441\u0442\u043E\u0432:", error);
         appEl.innerHTML = "<p>\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u043F\u043E\u0441\u0442\u043E\u0432.</p>";
     });
+}
+function sanitizeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }
 
 },{"./header-component.js":"ipQ1N","../index.js":"jOXmm","date-fns":"apLUd","date-fns/locale":"guJNA","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","../api.js":"lJgrb"}],"apLUd":[function(require,module,exports,__globalThis) {
@@ -4470,9 +4461,8 @@ var _dateFns = require("date-fns");
 var _locale = require("date-fns/locale");
 var _routesJs = require("../routes.js");
 var _indexJs = require("../index.js");
+var _postsPageComponentJs = require("./posts-page-component.js");
 function renderUserPostsPageComponent({ appEl, userId }) {
-    console.log("\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u043F\u043E\u0441\u0442\u044B \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F \u0441 ID:", userId);
-    // Проверяем, что userId передан
     if (!userId) {
         console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u041D\u0435 \u043F\u0435\u0440\u0435\u0434\u0430\u043D userId.");
         appEl.innerHTML = `
@@ -4492,7 +4482,6 @@ function renderUserPostsPageComponent({ appEl, userId }) {
         });
         return;
     }
-    // Показываем заглушку загрузки
     appEl.innerHTML = `
     <div class="page-container">
       <div class="header-container"></div>
@@ -4502,7 +4491,6 @@ function renderUserPostsPageComponent({ appEl, userId }) {
     (0, _headerComponentJs.renderHeaderComponent)({
         element: document.querySelector(".header-container")
     });
-    // Получаем посты конкретного пользователя
     (0, _apiJs.getPosts)({
         token: (0, _indexJs.getToken)(),
         userId
@@ -4535,14 +4523,14 @@ function renderUserPostsPageComponent({ appEl, userId }) {
             <li class="post" data-post-id="${post.id}">
               <div class="post-header" data-user-id="${post.user.id}">
                 <img src="${post.user.imageUrl}" class="post-header__user-image">
-                <p class="post-header__user-name">${post.user.name}</p>
+                <p class="post-header__user-name">${(0, _postsPageComponentJs.sanitizeHtml)(post.user.name)}</p>
               </div>
               <div class="post-image-container">
                 <img class="post-image" src="${post.imageUrl}" alt="\u{41F}\u{43E}\u{441}\u{442} \u{43F}\u{43E}\u{43B}\u{44C}\u{437}\u{43E}\u{432}\u{430}\u{442}\u{435}\u{43B}\u{44F} ${post.user.name}">
               </div>
               <div class="post-footer">
                 <p class="post-text">
-                  <span class="user-name">${post.user.name}</span>
+                  <span class="user-name">${(0, _postsPageComponentJs.sanitizeHtml)(post.user.name)}</span>
                   ${post.description}
                 </p>
                 <p class="post-date">
@@ -4553,9 +4541,9 @@ function renderUserPostsPageComponent({ appEl, userId }) {
                 <button class="like-button" data-post-id="${post.id}">
                   <img src="assets/images/${post.isLiked ? "like-active" : "like-not-active"}.svg" alt="\u{41B}\u{430}\u{439}\u{43A}">
                 </button>
-                <p class="post-likes-text">
-                  \u{41D}\u{440}\u{430}\u{432}\u{438}\u{442}\u{441}\u{44F}: <strong>${post.likes.length}</strong>
-                </p>
+                  <p class="post-likes-text">
+                    \u{41D}\u{440}\u{430}\u{432}\u{438}\u{442}\u{441}\u{44F}: <strong>${post.likes.length}</strong>${post.likes.length > 0 ? ` \u{2014} ${post.likes[post.likes.length - 1].name}` : ""}
+                  </p>
               </div>
             </li>
           `;
@@ -4564,7 +4552,7 @@ function renderUserPostsPageComponent({ appEl, userId }) {
         <div class="page-container">
           <div class="header-container"></div>
           <div class="user-posts-header">
-            <h1>\u{41F}\u{43E}\u{441}\u{442}\u{44B} ${userName}</h1>
+            <h1>\u{41F}\u{43E}\u{441}\u{442}\u{44B} ${(0, _postsPageComponentJs.sanitizeHtml)(userName)}</h1>
             <button class="back-button">\u{2190} \u{412}\u{435}\u{440}\u{43D}\u{443}\u{442}\u{44C}\u{441}\u{44F} \u{43A} \u{43B}\u{435}\u{43D}\u{442}\u{435}</button>
           </div>
           <ul class="posts">
@@ -4575,44 +4563,32 @@ function renderUserPostsPageComponent({ appEl, userId }) {
         (0, _headerComponentJs.renderHeaderComponent)({
             element: document.querySelector(".header-container")
         });
-        // Обработчик кнопки "Назад"
         document.querySelector(".back-button").addEventListener("click", ()=>{
             (0, _indexJs.goToPage)((0, _routesJs.POSTS_PAGE));
         });
-        // Обработчик клика по кнопке лайка
         document.querySelectorAll(".like-button").forEach((button)=>{
             button.addEventListener("click", (event)=>{
-                // Используем closest(), чтобы гарантировать, что мы получаем правильную кнопку
                 const buttonEl = event.target.closest("button");
-                // Получаем postId из data-атрибута кнопки
                 const postId = buttonEl?.dataset.postId;
-                // Логируем для отладки
-                console.log(`\u{41B}\u{430}\u{439}\u{43A} \u{434}\u{43B}\u{44F} \u{43F}\u{43E}\u{441}\u{442}\u{430} \u{441} ID: ${postId}`);
                 if (!postId) {
                     console.error("\u274C \u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D postId \u0434\u043B\u044F \u043B\u0430\u0439\u043A\u0430.");
-                    return; // Прерываем выполнение, если postId не найден
+                    return;
                 }
-                // Проверка, стоит ли лайк
                 const isLiked = event.target.src.includes("like-active");
-                console.log(`\u{1F449} \u{41B}\u{430}\u{439}\u{43A} \u{434}\u{43B}\u{44F} \u{43F}\u{43E}\u{441}\u{442}\u{430} \u{441} ID: ${postId}, isLiked: ${isLiked}`);
-                // Отправляем запрос на сервер для переключения состояния лайка
                 (0, _apiJs.toggleLike)({
                     postId,
                     isLiked,
                     token: (0, _indexJs.getToken)()
                 }).then((updatedPost)=>{
-                    // Логируем ответ от сервера
-                    console.log("\u041E\u0442\u0432\u0435\u0442 \u043E\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0434\u043B\u044F \u043F\u043E\u0441\u0442\u0430:", updatedPost);
-                    // Найдем элемент поста в DOM
                     const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
                     if (postElement) {
-                        // Обновим иконку лайка
                         const likeButton = postElement.querySelector("button img");
                         const likeCount = postElement.querySelector(".post-likes-text strong");
                         if (likeButton && likeCount) {
                             likeButton.src = updatedPost.isLiked ? "assets/images/like-active.svg" : "assets/images/like-not-active.svg";
-                            // Обновляем счетчик лайков
-                            likeCount.textContent = updatedPost.likes.length;
+                            likeCount.parentElement.innerHTML = `
+                    \u{41D}\u{440}\u{430}\u{432}\u{438}\u{442}\u{441}\u{44F}: <strong>${updatedPost.likes.length}</strong>${updatedPost.likes.length > 0 ? ` \u{2014} ${updatedPost.likes[updatedPost.likes.length - 1].name}` : ""}
+                  `;
                         } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0434\u043B\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B");
                     } else console.error("\u041E\u0448\u0438\u0431\u043A\u0430: \u044D\u043B\u0435\u043C\u0435\u043D\u0442 \u043F\u043E\u0441\u0442\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
                 }).catch((error)=>{
@@ -4640,6 +4616,6 @@ function renderUserPostsPageComponent({ appEl, userId }) {
     });
 }
 
-},{"../api.js":"lJgrb","./header-component.js":"ipQ1N","date-fns":"apLUd","date-fns/locale":"guJNA","../routes.js":"7oXEA","../index.js":"jOXmm","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["kxwl6","jOXmm"], "jOXmm", "parcelRequire94c2", {})
+},{"../api.js":"lJgrb","./header-component.js":"ipQ1N","date-fns":"apLUd","date-fns/locale":"guJNA","../routes.js":"7oXEA","../index.js":"jOXmm","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","./posts-page-component.js":"5krBj"}]},["kxwl6","jOXmm"], "jOXmm", "parcelRequire94c2", {})
 
 //# sourceMappingURL=KP.e02fbd41.js.map

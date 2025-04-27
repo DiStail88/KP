@@ -5,7 +5,6 @@ import { ru } from "date-fns/locale";
 import { getPosts, toggleLike } from "../api.js";
 
 export function renderPostsPageComponent({ appEl }) {
-  console.log("Загружаем посты...");
 
   getPosts({ token: getToken() })
     .then((posts) => {
@@ -20,22 +19,22 @@ export function renderPostsPageComponent({ appEl }) {
             <li class="post" data-post-id="${post.id}">
               <div class="post-header" data-user-id="${post.user.id}">
                 <img src="${post.user.imageUrl}" class="post-header__user-image">
-                <p class="post-header__user-name">${post.user.name}</p>
+                <p class="post-header__user-name">${sanitizeHtml(post.user.name)}</p>
               </div>
               <div class="post-image-container">
                 <img class="post-image" src="${post.imageUrl}">
               </div>
               <div class="post-likes">
                 <button data-post-id="${post.id}" class="like-button">
-                  <img src="assets/images/${post.isLiked ? 'like-active' : 'like-not-active'}.svg">
+                  <img src="assets/images/${post.isLiked ? 'like-active.svg' : 'like-not-active.svg'}">
                 </button>
-                <p class="post-likes-text">
-                  Нравится: <strong>${post.likes.length}</strong>
-                </p>
+                  <p class="post-likes-text">
+                    Нравится: <strong>${post.likes.length}</strong>${post.likes.length > 0 ? ` — ${post.likes[post.likes.length - 1].name}` : ""}
+                  </p>
               </div>
               <p class="post-text">
-                <span class="user-name">${post.user.name}</span>
-                ${post.description}
+                <span class="user-name">${sanitizeHtml(post.user.name)}</span>
+                ${sanitizeHtml(post.description)}
               </p>
               <p class="post-date">
                 ${createdAgo}
@@ -69,29 +68,27 @@ export function renderPostsPageComponent({ appEl }) {
             return;
           }
 
-          console.log("👉 Переход к постам пользователя с ID:", userId);
           goToPage("user-posts", { userId });
         });
       });
 
-      // Обработчик нажатия на кнопку лайка
+
       document.querySelectorAll(".like-button").forEach((button) => {
         button.addEventListener("click", (event) => {
           const postId = button.dataset.postId;
           const isLiked = button.querySelector("img").src.includes("like-active");
 
-          console.log(`👉 Лайк для поста с ID: ${postId}, isLiked: ${isLiked}`);
 
-          // Отправляем запрос на сервер для переключения состояния лайка
+
           toggleLike({ postId, isLiked, token: getToken() })
             .then((updatedPost) => {
-              // Логируем ответ от сервера
-              console.log("Ответ от сервера для поста:", updatedPost);
 
-              // Найдем элемент поста в DOM
+
+
+
               const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
               if (postElement) {
-                // Обновим иконку лайка
+
                 const likeButton = postElement.querySelector("button img");
                 const likeCount = postElement.querySelector(".post-likes-text strong");
 
@@ -100,7 +97,9 @@ export function renderPostsPageComponent({ appEl }) {
                     ? "assets/images/like-active.svg"
                     : "assets/images/like-not-active.svg";
 
-                  likeCount.textContent = updatedPost.likes.length;
+                    likeCount.parentElement.innerHTML = `
+                    Нравится: <strong>${updatedPost.likes.length}</strong>${updatedPost.likes.length > 0 ? ` — ${updatedPost.likes[updatedPost.likes.length - 1].name}` : ""}
+                  `;
                 } else {
                   console.error("Ошибка: элементы для обновления не найдены");
                 }
@@ -118,4 +117,10 @@ export function renderPostsPageComponent({ appEl }) {
       console.error("Ошибка при загрузке постов:", error);
       appEl.innerHTML = "<p>Ошибка загрузки постов.</p>";
     });
+}
+
+export function sanitizeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }

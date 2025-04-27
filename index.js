@@ -153,7 +153,6 @@ export function onAddPostClick({ description, imageUrl }) {
 
   addPost({ description, imageUrl, token })
     .then((newPost) => {
-      console.log("Пост успешно создан:", newPost);
       posts.unshift(newPost);
       goToPage(POSTS_PAGE);
     })
