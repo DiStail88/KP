@@ -21,7 +21,7 @@ import { addPost } from "./api.js";
 export let user = getUserFromLocalStorage();
 export let page = null;
 export let posts = [];
-let pageParams = {}; // ← добавлено
+let pageParams = {};
 
 export const getToken = () => {
   return user ? `Bearer ${user.token}` : undefined;
@@ -34,7 +34,7 @@ export const logout = () => {
 };
 
 export const goToPage = (newPage, data = {}) => {
-  pageParams = data; // ← сохраняем параметры страницы
+  pageParams = data;
 
   if (
     [POSTS_PAGE, AUTH_PAGE, ADD_POSTS_PAGE, USER_POSTS_PAGE, LOADING_PAGE].includes(newPage)
@@ -124,7 +124,7 @@ const renderApp = () => {
     return renderUserPostsPageComponent({
       appEl,
       posts,
-      userId: pageParams.userId, // ← теперь userId всегда передаётся
+      userId: pageParams.userId, 
     });
   }
 };
@@ -153,7 +153,6 @@ export function onAddPostClick({ description, imageUrl }) {
 
   addPost({ description, imageUrl, token })
     .then((newPost) => {
-      console.log("Пост успешно создан:", newPost);
       posts.unshift(newPost);
       goToPage(POSTS_PAGE);
     })

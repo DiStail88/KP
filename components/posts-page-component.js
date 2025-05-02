@@ -2,12 +2,10 @@ import { renderHeaderComponent } from "./header-component.js";
 import { goToPage, getToken } from "../index.js";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import { getPosts, toggleLike } from "../api.js"; // Правильное название для API функции
+import { getPosts, toggleLike } from "../api.js";
 
 export function renderPostsPageComponent({ appEl }) {
-  console.log("Загружаем посты...");
 
-  // Получаем посты с API
   getPosts({ token: getToken() })
     .then((posts) => {
       const postsHtml = posts
@@ -18,25 +16,25 @@ export function renderPostsPageComponent({ appEl }) {
           });
 
           return `
-            <li class="post">
+            <li class="post" data-post-id="${post.id}">
               <div class="post-header" data-user-id="${post.user.id}">
                 <img src="${post.user.imageUrl}" class="post-header__user-image">
-                <p class="post-header__user-name">${post.user.name}</p>
+                <p class="post-header__user-name">${sanitizeHtml(post.user.name)}</p>
               </div>
               <div class="post-image-container">
                 <img class="post-image" src="${post.imageUrl}">
               </div>
               <div class="post-likes">
                 <button data-post-id="${post.id}" class="like-button">
-                  <img src="assets/images/${post.isLiked ? 'like-active' : 'like-not-active'}.svg">
+                  <img src="assets/images/${post.isLiked ? 'like-active.svg' : 'like-not-active.svg'}">
                 </button>
-                <p class="post-likes-text">
-                  Нравится: <strong>${post.likes.length}</strong>
-                </p>
+                  <p class="post-likes-text">
+                    Нравится: <strong>${post.likes.length}</strong>${post.likes.length > 0 ? ` — ${post.likes[post.likes.length - 1].name}` : ""}
+                  </p>
               </div>
               <p class="post-text">
-                <span class="user-name">${post.user.name}</span>
-                ${post.description}
+                <span class="user-name">${sanitizeHtml(post.user.name)}</span>
+                ${sanitizeHtml(post.description)}
               </p>
               <p class="post-date">
                 ${createdAgo}
@@ -45,7 +43,6 @@ export function renderPostsPageComponent({ appEl }) {
           `;
         })
         .join("");
-
 
       const appHtml = `
         <div class="page-container">
@@ -62,7 +59,6 @@ export function renderPostsPageComponent({ appEl }) {
         element: document.querySelector(".header-container"),
       });
 
-      // Обработчик клика по пользователю
       document.querySelectorAll(".post-header").forEach((userEl) => {
         userEl.addEventListener("click", () => {
           const userId = userEl.dataset.userId;
@@ -72,31 +68,44 @@ export function renderPostsPageComponent({ appEl }) {
             return;
           }
 
-          console.log("👉 Переход к постам пользователя с ID:", userId);
-          goToPage("user-posts", {
-            userId,
-          });
+          goToPage("user-posts", { userId });
         });
       });
 
-      // Обработчик клика по кнопке лайка
+
       document.querySelectorAll(".like-button").forEach((button) => {
         button.addEventListener("click", (event) => {
-          const postId = event.target.closest("button").dataset.postId;
-          const isLiked = event.target.src.includes("like-active"); // Проверка, стоит ли лайк
+          const postId = button.dataset.postId;
+          const isLiked = button.querySelector("img").src.includes("like-active");
 
-          // Обновляем состояние лайка и перерисовываем UI
-          toggleLike(postId, isLiked)
+
+
+          toggleLike({ postId, isLiked, token: getToken() })
             .then((updatedPost) => {
-              const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
-              const likeButton = postElement.querySelector("button img");
-              const likeCount = postElement.querySelector(".post-likes-text strong");
 
-              // Обновляем картинку лайка
-              likeButton.src = updatedPost.isLiked ? "assets/images/like-active.svg" : "assets/images/like-not-active.svg";
-              
-              // Обновляем счетчик лайков
-              likeCount.textContent = updatedPost.likes.length;
+
+
+
+              const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
+              if (postElement) {
+
+                const likeButton = postElement.querySelector("button img");
+                const likeCount = postElement.querySelector(".post-likes-text strong");
+
+                if (likeButton && likeCount) {
+                  likeButton.src = updatedPost.isLiked
+                    ? "assets/images/like-active.svg"
+                    : "assets/images/like-not-active.svg";
+
+                    likeCount.parentElement.innerHTML = `
+                    Нравится: <strong>${updatedPost.likes.length}</strong>${updatedPost.likes.length > 0 ? ` — ${updatedPost.likes[updatedPost.likes.length - 1].name}` : ""}
+                  `;
+                } else {
+                  console.error("Ошибка: элементы для обновления не найдены");
+                }
+              } else {
+                console.error("Ошибка: элемент поста не найден");
+              }
             })
             .catch((error) => {
               console.error("Ошибка при обновлении лайка:", error);
@@ -108,4 +117,10 @@ export function renderPostsPageComponent({ appEl }) {
       console.error("Ошибка при загрузке постов:", error);
       appEl.innerHTML = "<p>Ошибка загрузки постов.</p>";
     });
+}
+
+export function sanitizeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }

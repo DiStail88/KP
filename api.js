@@ -1,13 +1,12 @@
 import { getToken } from './index.js'; 
 
-const personalKey = "prod";
-const baseHost = "https://webdev-hw-api.vercel.app";
+const personalKey = "DIS";
+const baseHost = "https://wedev-api.sky.pro";
 const postsHost = `${baseHost}/api/v1/${personalKey}/instapro`;
 
 export function getPosts({ token, userId }) {
   let url = postsHost;
 
-  // Правильный путь для получения постов пользователя
   if (userId) {
     url += `/user-posts/${userId}`;
   }
@@ -83,7 +82,6 @@ export function uploadImage({ file }) {
 }
 
 export function addPost({ imageUrl, description, token }) {
-  // Проверяем данные по всем требованиям документации
   if (!description || typeof description !== 'string' || description.trim() === '') {
     return Promise.reject(new Error("Описание обязательно"));
   }
@@ -92,15 +90,13 @@ export function addPost({ imageUrl, description, token }) {
     return Promise.reject(new Error("Требуется валидный URL из Yandex Cloud"));
   }
 
-  // Формируем тело запроса с правильным форматом даты
   const postData = {
     description: description.trim(),
     imageUrl: imageUrl.trim()
   };
 
-  console.log("Отправляемые данные на сервер:", JSON.stringify(postData));
 
-  return fetch("https://wedev-api.sky.pro/api/v1/prod/instapro", {
+  return fetch(`${baseHost}/api/v1/${personalKey}/instapro`, {
     method: "POST",
     headers: {
       'Authorization': token,
@@ -110,10 +106,9 @@ export function addPost({ imageUrl, description, token }) {
   })
   .then(async (response) => {
     const responseData = await response.json();
-    console.log("Ответ сервера:", responseData);
 
     if (response.status === 201) {
-      return responseData.post || responseData; // Возвращаем созданный пост
+      return responseData.post || responseData; 
     }
 
     if (response.status === 400) {
@@ -124,30 +119,45 @@ export function addPost({ imageUrl, description, token }) {
   });
 }
 
-export function toggleLike(postId, isLiked) {
-  const endpoint = isLiked
-    ? `/api/v1/prod/instapro/posts/${postId}/dislike`   // для снятия лайка
-    : `/api/v1/prod/instapro/posts/${postId}/like`;      // для добавления лайка
-  const url = baseHost + endpoint;
-  console.log("Отправка запроса по URL:", url);
+export function toggleLike({ postId, isLiked, token }) {
+  if (!postId || typeof postId !== 'string') {
+    console.error('Invalid postId:', postId);
+    return Promise.reject(new Error("Неверный ID поста"));
+  }
+
+  if (typeof isLiked !== 'boolean') {
+    return Promise.reject(new Error("Не указано действие (лайк/дизлайк)"));
+  }
+
+  if (!token) {
+    return Promise.reject(new Error("Требуется токен авторизации"));
+  }
+
+  const endpoint = isLiked ? '/dislike' : '/like';
+  const url = `${baseHost}/api/v1/${personalKey}/instapro/${postId}${endpoint}`;
+
 
   return fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${getToken()}`,
-    },
-  })
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error(`Ошибка при запросе: ${response.status} ${response.statusText}`);
+      "Authorization": token,
     }
-    return response.json();
   })
-  .then((updatedPost) => {
-    return updatedPost;
-  })
-  .catch((error) => {
-    console.error("Ошибка при обновлении лайка:", error);
-    throw new Error("Не удалось обновить лайк");
-  });
+    .then(async (response) => {
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('[API] toggleLike error: Unexpected response:', errorData);
+        throw new Error(`Ошибка сервера: ${response.status}`);
+      }
+
+
+      const data = await response.json();
+
+      return data.post || data;
+    })
+    .catch((error) => {
+      console.error('[API] toggleLike error:', error.message);
+      throw error;
+    });
 }

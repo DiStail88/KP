@@ -4,11 +4,12 @@ import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { POSTS_PAGE } from "../routes.js";
 import { getToken, goToPage } from "../index.js";
+import { sanitizeHtml } from "./posts-page-component.js";
 
 export function renderUserPostsPageComponent({ appEl, userId }) {
-  console.log("Загружаем посты пользователя с ID:", userId);
 
-  // Проверяем, что userId передан
+
+
   if (!userId) {
     console.error("Ошибка: Не передан userId.");
     appEl.innerHTML = `
@@ -29,7 +30,7 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
     return;
   }
 
-  // Показываем заглушку загрузки
+
   appEl.innerHTML = `
     <div class="page-container">
       <div class="header-container"></div>
@@ -40,7 +41,7 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
     element: document.querySelector(".header-container"),
   });
 
-  // Получаем посты конкретного пользователя
+
   getPosts({ token: getToken(), userId })
     .then((posts) => {
       if (posts.length === 0) {
@@ -74,14 +75,14 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
             <li class="post" data-post-id="${post.id}">
               <div class="post-header" data-user-id="${post.user.id}">
                 <img src="${post.user.imageUrl}" class="post-header__user-image">
-                <p class="post-header__user-name">${post.user.name}</p>
+                <p class="post-header__user-name">${sanitizeHtml(post.user.name)}</p>
               </div>
               <div class="post-image-container">
                 <img class="post-image" src="${post.imageUrl}" alt="Пост пользователя ${post.user.name}">
               </div>
               <div class="post-footer">
                 <p class="post-text">
-                  <span class="user-name">${post.user.name}</span>
+                  <span class="user-name">${sanitizeHtml(post.user.name)}</span>
                   ${post.description}
                 </p>
                 <p class="post-date">
@@ -92,20 +93,21 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
                 <button class="like-button" data-post-id="${post.id}">
                   <img src="assets/images/${post.isLiked ? "like-active" : "like-not-active"}.svg" alt="Лайк">
                 </button>
-                <p class="post-likes-text">
-                  Нравится: <strong>${post.likes.length}</strong>
-                </p>
+                  <p class="post-likes-text">
+                    Нравится: <strong>${post.likes.length}</strong>${post.likes.length > 0 ? ` — ${post.likes[post.likes.length - 1].name}` : ""}
+                  </p>
               </div>
             </li>
           `;
         })
         .join("");
 
+
       appEl.innerHTML = `
         <div class="page-container">
           <div class="header-container"></div>
           <div class="user-posts-header">
-            <h1>Посты ${userName}</h1>
+            <h1>Посты ${sanitizeHtml(userName)}</h1>
             <button class="back-button">← Вернуться к ленте</button>
           </div>
           <ul class="posts">
@@ -118,29 +120,54 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
         element: document.querySelector(".header-container"),
       });
 
-      // Обработчик кнопки "Назад"
       document.querySelector(".back-button").addEventListener("click", () => {
         goToPage(POSTS_PAGE);
       });
 
-      // Обработчик клика по кнопке лайка
+
       document.querySelectorAll(".like-button").forEach((button) => {
         button.addEventListener("click", (event) => {
-          const postId = event.target.closest("button").dataset.postId;
-          const isLiked = event.target.src.includes("like-active"); // Проверка, стоит ли лайк
+          const buttonEl = event.target.closest("button");
 
-          // Обновляем состояние лайка и перерисовываем UI
-          toggleLike(postId, isLiked)
+          const postId = buttonEl?.dataset.postId;
+
+
+          if (!postId) {
+            console.error("❌ Не найден postId для лайка.");
+            return; 
+          }
+
+
+          const isLiked = event.target.src.includes("like-active");
+
+
+
+          toggleLike({ postId, isLiked, token: getToken() })
             .then((updatedPost) => {
-              const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
-              const likeButton = postElement.querySelector("button img");
-              const likeCount = postElement.querySelector(".post-likes-text strong");
 
-              // Обновляем картинку лайка
-              likeButton.src = updatedPost.isLiked ? "./assets/images/like-active.svg" : "./assets/images/like-not-active.svg";
-              
-              // Обновляем счетчик лайков
-              likeCount.textContent = updatedPost.likes.length;
+
+
+              const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
+              if (postElement) {
+
+                const likeButton = postElement.querySelector("button img");
+                const likeCount = postElement.querySelector(".post-likes-text strong");
+
+                if (likeButton && likeCount) {
+                  likeButton.src = updatedPost.isLiked
+                    ? "assets/images/like-active.svg"
+                    : "assets/images/like-not-active.svg";
+                  
+
+                    likeCount.parentElement.innerHTML = `
+                    Нравится: <strong>${updatedPost.likes.length}</strong>${updatedPost.likes.length > 0 ? ` — ${updatedPost.likes[updatedPost.likes.length - 1].name}` : ""}
+                  `;
+                } else {
+                  console.error("Ошибка: элементы для обновления не найдены");
+                }
+              } else {
+                console.error("Ошибка: элемент поста не найден");
+              }
             })
             .catch((error) => {
               console.error("Ошибка при обновлении лайка:", error);
@@ -167,3 +194,4 @@ export function renderUserPostsPageComponent({ appEl, userId }) {
       });
     });
 }
+

@@ -116,12 +116,11 @@ export function renderAuthPageComponent({ appEl, setUser }) {
         }
         loginUser({ login, password })
         .then((data) => {
-          // Проверьте, что в данных есть токен
+
           if (data && data.user && data.user.token) {
             const token = data.user.token;
-            console.log('Получен токен:', token);  // Логируем токен, чтобы убедиться, что он есть
-            localStorage.setItem('userToken', token); // Сохраняем токен в localStorage
-            setUser(data.user);  // Передаем данные пользователя в основной компонент
+            localStorage.setItem('userToken', token); 
+            setUser(data.user); 
           } else {
             console.error('Токен не получен');
           }
@@ -132,7 +131,7 @@ export function renderAuthPageComponent({ appEl, setUser }) {
         });
       
       } else {
-        // Обработка регистрации
+ 
         const login = document.getElementById("login-input").value;
         const name = document.getElementById("name-input").value;
         const password = document.getElementById("password-input").value;
@@ -168,13 +167,13 @@ export function renderAuthPageComponent({ appEl, setUser }) {
       }
     });
 
-    // Обработка переключения режима (вход ↔ регистрация)
+    
     document.getElementById("toggle-button").addEventListener("click", () => {
       isLoginMode = !isLoginMode;
-      renderForm(); // Перерисовываем форму с новым режимом
+      renderForm(); 
     });
   };
 
-  // Инициализация формы
+  
   renderForm();
 }

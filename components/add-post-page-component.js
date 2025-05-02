@@ -42,7 +42,7 @@ export function renderAddPostPageComponent({ appEl }) {
         return;
       }
     
-      // Удаляем все спецсимволы из описания
+      
       const cleanDescription = description.replace(/[^\w\sа-яА-ЯёЁ.,!?]/gi, '');
     
       if (cleanDescription.length < 1) {
